@@ -1,4 +1,4 @@
-package hr.kh.demo.web.dto;
+package hr.kh.demo.core.dto;
 
 import java.io.Serializable;
 
