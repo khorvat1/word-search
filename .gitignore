@@ -1,0 +1,12 @@
+.project
+.settings
+
+/ws-core/.project
+/ws-core/.settings
+/ws-core/.classpath
+/ws-core/target
+
+/ws-rest/.project
+/ws-rest/.settings
+/ws-rest/.classpath
+/ws-rest/target
