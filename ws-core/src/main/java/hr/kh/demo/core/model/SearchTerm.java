@@ -1,6 +1,7 @@
 package hr.kh.demo.core.model;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -8,6 +9,8 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+
+import hr.kh.demo.core.model.enums.SearchPlatform;
 
 @Entity
 @Table(name="ws_schema.search_term")
@@ -18,7 +21,17 @@ public class SearchTerm {
 	private Timestamp searchDate;
 	private Integer positiveScore;
 	private Integer negativeScore;
-	private Integer platform;
+	private SearchPlatform platform;
+	
+	public SearchTerm() { }
+	
+	public SearchTerm(String term, Integer positiveScore, Integer negativeScore, SearchPlatform platform) {
+		this.term = term;
+		this.positiveScore = positiveScore;
+		this.negativeScore = negativeScore;
+		this.platform = platform;
+		this.searchDate = Timestamp.valueOf(LocalDateTime.now());
+	}
 	
 	@Id
 	@GeneratedValue(generator="ws_sequence")
@@ -64,10 +77,10 @@ public class SearchTerm {
 	}
 	
 	@Column(name="platform")
-	public Integer getPlatform() {
+	public SearchPlatform getPlatform() {
 		return platform;
 	}
-	public void setPlatform(Integer platform) {
+	public void setPlatform(SearchPlatform platform) {
 		this.platform = platform;
 	}
 

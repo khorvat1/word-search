@@ -3,17 +3,25 @@ package hr.kh.demo.core.service.impl;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClientException;
 
+import hr.kh.demo.core.dao.SearchTermDao;
 import hr.kh.demo.core.dto.GithubResponse;
+import hr.kh.demo.core.model.SearchTerm;
+import hr.kh.demo.core.model.enums.SearchPlatform;
 import hr.kh.demo.core.service.RestCallService;
 import hr.kh.demo.core.service.ScoreSearchService;
 
 @Service
 public class GithubScoreSearchService implements ScoreSearchService {
+	
+	private Logger log = LoggerFactory.getLogger(this.getClass());
 	
 	@Value("${target.github.url:}")
 	private String targetUrl;
@@ -26,17 +34,26 @@ public class GithubScoreSearchService implements ScoreSearchService {
 	
 	@Autowired
 	private RestCallService restCallService;
+	
+	@Autowired
+	private SearchTermDao searchTermDao;
 
 	@Override
+	@Transactional
 	public Double getTermScore(String term) {
-		Double positive = getPositiveCount(term) != null ? getPositiveCount(term).doubleValue() : null;
-		Double negative = getNegativeCount(term) != null ? getNegativeCount(term).doubleValue() : null;
+		//get existing result
+		SearchTerm searchTerm = searchTermDao.getLastValidSearchTerm(term, SearchPlatform.GITHUB);
 		
-		if (positive == null || negative == null) {
-			//TODO logger
-			return 0d;
+		if (searchTerm != null) {
+			return calculateScore(searchTerm.getPositiveScore(), searchTerm.getNegativeScore());
+			
 		} else {
-			return (positive / (positive + negative));
+			Integer positive = getPositiveCount(term);
+			Integer negative = getNegativeCount(term);
+			
+			searchTerm = new SearchTerm(term, positive, negative, SearchPlatform.GITHUB);
+			searchTermDao.create(searchTerm);
+			return calculateScore(positive, negative);
 		}
 	}
 
@@ -52,16 +69,26 @@ public class GithubScoreSearchService implements ScoreSearchService {
 		return makeRestCall(url);
 	}
 	
+	private Double calculateScore(Integer positiveScore, Integer negativeScore) {
+		Double positive = positiveScore != null ? positiveScore.doubleValue() : null;
+		Double negative = negativeScore != null ? negativeScore.doubleValue() : null;
+		
+		if (positive == null || negative == null) {
+			return 0d;
+		} else {
+			return (positive / (positive + negative));
+		}
+	}
+	
 	private Integer makeRestCall(String url) {
 		GithubResponse response = null;
 		try {
 			response = restCallService.makeRestGetCall(url, GithubResponse.class);
 			if (response != null) {
-				response.getTotalCount();
+				return response.getTotalCount();
 			}
 		} catch (RestClientException e) {
-			//TODO logger
-			e.printStackTrace();
+			log.error(e.getMessage(), e);
 		}
 		
 		return null;
